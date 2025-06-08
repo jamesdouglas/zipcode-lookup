@@ -61,11 +61,14 @@ zipcode-lookup radius --zip 90210 --miles 25
 # Include distance in results
 zipcode-lookup radius --zip 92054 --miles 25 --include-distance
 
-
 # Use specific data sources
 zipcode-lookup radius --zip 90210 --miles 25 --source zipcodes
 zipcode-lookup radius --zip 90210 --miles 25 --source nominatim
 zipcode-lookup radius --zip 90210 --miles 25 --source zippopotam
+
+# Compare data sources - analyze coordinate and distance differences
+zipcode-lookup radius --zip 92054 --miles 5 --include-distance --source zipcodes --compare nominatim
+zipcode-lookup radius --zip 90210 --miles 3 --include-distance --source nominatim --compare zippopotam
 
 # Custom output format
 zipcode-lookup radius --zip 90210 --miles 25 --format csv > results.csv
@@ -167,6 +170,7 @@ Chicago,IL
 | ----------------------- | -------------------------------------- | -------- |
 | `-z, --zip`             | Center zipcode                         | ✅        |
 | `-m, --miles`           | Radius in miles                        | ✅        |
+| `--compare`             | Compare with another data source       | ❌        |
 | `--include-distance`    | Include distance in output             | ❌        |
 | `--include-coordinates` | Include latitude/longitude coordinates | ❌        |
 | `--include-city`        | Include city name                      | ❌        |
@@ -203,6 +207,45 @@ Chicago,IL
 | `-m`, `--miles`      | Radius in miles (alias for --radius)                      | if operation = radius   |
 | `--centroid-zipcode` | Centroid zipcode for distance operations                  | if operation = distance |
 | `--include-distance` | Include distance in output                                | ❌                       |
+
+#### Data Source Comparison
+
+The `--compare` option enables powerful analysis of coordinate and distance differences between data sources. This feature helps identify data quality issues, coordinate discrepancies, and coverage gaps.
+
+**Comparison Output Includes:**
+- Center point coordinate differences between sources
+- Distance calculations from each source for every zipcode
+- Full latitude/longitude coordinates from both sources
+- Data availability indicators (which zipcodes exist in each source)
+- Distance calculation differences highlighting coordinate impacts
+
+**Example Comparison Output:**
+
+```
+Zipcode Comparison: 92054
+Radius: 3 miles
+Primary Source: zipcodes
+Compare Source: nominatim
+Coordinate Difference: 1.0194 miles
+
+Center Point Coordinates:
+┌───────────┬────────────┬──────────────┬───────────┬───────┐
+│ Source    │ Latitude   │ Longitude    │ City      │ State │
+├───────────┼────────────┼──────────────┼───────────┼───────┤
+│ zipcodes  │ 33.2072    │ -117.3573    │ Oceanside │ CA    │
+├───────────┼────────────┼──────────────┼───────────┼───────┤
+│ nominatim │ 33.1924492 │ -117.3576055 │ Oceanside │ CA    │
+└───────────┴────────────┴──────────────┴───────────┴───────┘
+
+Detailed Zipcode Comparison:
+┌─────────┬───────────────┬──────────────┬──────────────┬────────────────┬───────────────┬───────────────┬───────┬────────────┬────────────┐
+│ Zipcode │ zipcodes Dist │ zipcodes Lat │ zipcodes Lon │ nominatim Dist │ nominatim Lat │ nominatim Lon │ Diff  │ In Primary │ In Compare │
+├─────────┼───────────────┼──────────────┼──────────────┼────────────────┼───────────────┼───────────────┼───────┼────────────┼────────────┤
+│ 92054   │ 0             │ 33.2072      │ -117.3573    │ 1.02           │ 33.2072       │ -117.3573     │ -1.02 │ ✓          │ ✓          │
+├─────────┼───────────────┼──────────────┼──────────────┼────────────────┼───────────────┼───────────────┼───────┼────────────┼────────────┤
+│ 92049   │ 1.5           │ 33.1959      │ -117.3795    │ 1.29           │ 33.1959       │ -117.3795     │ +0.21 │ ✓          │ ✓          │
+└─────────┴───────────────┴──────────────┴──────────────┴────────────────┴───────────────┴───────────────┴───────┴────────────┴────────────┘
+```
 
 ## 🔧 Development
 

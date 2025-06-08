@@ -19,6 +19,7 @@ program
   .requiredOption('-z, --zip <zipcode>', 'Base zipcode for radius search')
   .requiredOption('-m, --miles <distance>', 'Radius in miles', parseFloat)
   .option('-s, --source <type>', 'Data source: nominatim, zippopotam, zipcodes, local, auto', 'auto')
+  .option('--compare <type>', 'Compare with another data source: nominatim, zippopotam, zipcodes')
   .option('--format <format>', 'Output format: json, csv, yaml, table', 'table')
   .option('--include-distance', 'Include distance in output', false)
   .option('--include-coordinates', 'Include latitude/longitude coordinates', false)
