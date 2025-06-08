@@ -168,7 +168,7 @@ class RadiusSearchCommand {
                 };
 
                 if (primaryResult) {
-                    comparisonEntry.primary_distance = primaryResult.distance_miles;
+                    comparisonEntry.primary_distance = primaryResult.distance_miles || 0;
                     comparisonEntry.primary_coordinates = {
                         latitude: primaryResult.latitude,
                         longitude: primaryResult.longitude
@@ -176,7 +176,7 @@ class RadiusSearchCommand {
                 }
 
                 if (compareResult) {
-                    comparisonEntry.compare_distance = compareResult.distance_miles;
+                    comparisonEntry.compare_distance = compareResult.distance_miles || 0;
                     comparisonEntry.compare_coordinates = {
                         latitude: compareResult.latitude,
                         longitude: compareResult.longitude
@@ -203,8 +203,12 @@ class RadiusSearchCommand {
                 comparison.push(comparisonEntry);
             }
 
-            // Sort by zipcode
-            return comparison.sort((a, b) => a.zipcode.localeCompare(b.zipcode));
+            // Sort by primary source distance (ascending)
+            return comparison.sort((a, b) => {
+                const primaryDistA = a.primary_distance !== undefined ? a.primary_distance : Infinity;
+                const primaryDistB = b.primary_distance !== undefined ? b.primary_distance : Infinity;
+                return primaryDistA - primaryDistB;
+            });
         } catch (error) {
             console.error(`Error in buildDetailedComparison: ${error.message}`);
             return [];

@@ -112,6 +112,15 @@ class ReverseCommand {
                 }
             }
 
+            // Sort by distance when distance is included
+            if (includeDistance || miles) {
+                filteredResults.sort((a, b) => {
+                    const distanceA = a.distance_miles || 0;
+                    const distanceB = b.distance_miles || 0;
+                    return distanceA - distanceB;
+                });
+            }
+
             // Apply field filtering if specified
             let finalResults = filteredResults;
             if (fields) {
