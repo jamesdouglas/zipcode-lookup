@@ -6,6 +6,8 @@ A comprehensive command-line interface for zipcode lookup, radius search, locati
 
 - **🎯 Radius Search**: Find all zipcodes within a specified distance
 - **📍 Location Search**: Lookup zipcodes by city, state, or county
+- **🔄 Reverse Lookup**: Find nearest zipcode from latitude/longitude coordinates
+- **⚖️ Data Source Comparison**: Compare lat/lon coordinates and distances between data sources
 - **🏛️ Census Integration**: Get census tract data for zipcodes
 - **📊 Batch Processing**: Process multiple queries from CSV files
 - **🔄 Smart Fallbacks**: Zipcodes Package → Online API
@@ -106,7 +108,48 @@ zipcode-lookup location --city "Beverly Hills" --state CA --format json
 zipcode-lookup location --city "Manhattan" --state NY --format yaml
 ```
 
-### 3. Census Data Integration
+### 3. Reverse Lookup
+
+Find the nearest zipcode for given latitude/longitude coordinates.
+
+```bash
+# Basic reverse lookup
+zipcode-lookup reverse --lat 33.2072 --lon -117.3573
+
+# Find multiple nearest zipcodes
+zipcode-lookup reverse --lat 33.2072 --lon -117.3573 --nearest 10
+
+# Include distance from coordinates to zipcode center
+zipcode-lookup reverse --lat 33.2072 --lon -117.3573 --include-distance
+
+# Include zipcode center coordinates in output
+zipcode-lookup reverse --lat 33.2072 --lon -117.3573 --include-coordinates
+
+# Use specific data source
+zipcode-lookup reverse --lat 33.2072 --lon -117.3573 --source nominatim
+
+# Compare data sources for reverse lookup
+zipcode-lookup reverse --lat 33.2072 --lon -117.3573 --source zipcodes --compare nominatim --include-distance
+
+# Custom output format
+zipcode-lookup reverse --lat 33.2072 --lon -117.3573 --format json
+```
+
+**Example Output:**
+
+```
+┌─────────┬────────────────┬───────┬────────────────────┬─────────┬───────────┐
+│ zipcode │ city           │ state │ distance_miles     │ lat     │ lon       │
+├─────────┼────────────────┼───────┼────────────────────┼─────────┼───────────┤
+│ 92054   │ Oceanside      │ CA    │ 0                  │ 33.2072 │ -117.3573 │
+├─────────┼────────────────┼───────┼────────────────────┼─────────┼───────────┤
+│ 92049   │ Oceanside      │ CA    │ 1.502378842592423  │ 33.1959 │ -117.3795 │
+├─────────┼────────────────┼───────┼────────────────────┼─────────┼───────────┤
+│ 92051   │ Oceanside      │ CA    │ 1.502378842592423  │ 33.1959 │ -117.3795 │
+└─────────┴────────────────┴───────┴────────────────────┴─────────┴───────────┘
+```
+
+### 4. Census Data Integration
 
 Get census tract information for specific zipcodes.
 
@@ -185,6 +228,20 @@ Chicago,IL
 | `-s, --state`           | State code (e.g., CA, TX)              | ❌             |
 | `--county`              | County name                            | ✅ (or city)   |
 | `--include-coordinates` | Include latitude/longitude coordinates | ❌             |
+
+#### Reverse Command
+
+| Option                  | Description                            | Required |
+| ----------------------- | -------------------------------------- | -------- |
+| `--lat`                 | Latitude coordinate (-90 to 90)        | ✅        |
+| `--lon`                 | Longitude coordinate (-180 to 180)     | ✅        |
+| `--compare`             | Compare with another data source       | ❌        |
+| `--nearest`             | Number of nearest zipcodes to return   | ❌        |
+| `-m, --miles`           | Maximum distance in miles to include   | ❌        |
+| `--include-distance`    | Include distance from coordinates      | ❌        |
+| `--include-coordinates` | Include zipcode center coordinates     | ❌        |
+
+**Note**: `--nearest` and `--miles` are mutually exclusive options. Use `--nearest` for closest N zipcodes or `--miles` for all zipcodes within distance.
 
 #### Census Command
 

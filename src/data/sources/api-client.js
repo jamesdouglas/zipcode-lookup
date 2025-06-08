@@ -101,6 +101,45 @@ class APIClient {
   }
 
   /**
+   * Reverse geocode coordinates to find zipcode using Nominatim API
+   * @param {number} lat - Latitude coordinate
+   * @param {number} lon - Longitude coordinate
+   * @returns {Promise<Object|null>} Zipcode data
+   */
+  async reverseGeocode(lat, lon) {
+    const cacheKey = `reverse:${lat},${lon}`;
+    const cached = this.getFromCache(cacheKey);
+    if (cached) return cached;
+
+    try {
+      const response = await axios.get('https://nominatim.openstreetmap.org/reverse', {
+        params: {
+          lat: lat,
+          lon: lon,
+          format: 'json',
+          addressdetails: 1,
+          zoom: 18
+        },
+        headers: {
+          'User-Agent': 'zipcode-lookup-cli/1.0.0'
+        },
+        timeout: this.baseTimeout
+      });
+
+      if (response.data && response.data.address && response.data.address.postcode) {
+        const result = this.transformNominatimData(response.data, response.data.address.postcode);
+        this.setCache(cacheKey, result);
+        return result;
+      }
+
+      return null;
+    } catch (error) {
+      console.error(`Nominatim reverse geocoding error for ${lat},${lon}:`, error.message);
+      return null;
+    }
+  }
+
+  /**
    * Search locations using Nominatim API
    * @param {Object} query - Search parameters (city, state, county)
    * @returns {Promise<Array>} Location results

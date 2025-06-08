@@ -6,6 +6,7 @@ const RadiusCommand = require('../src/commands/radius');
 const LocationCommand = require('../src/commands/location');
 const CensusCommand = require('../src/commands/census');
 const BatchCommand = require('../src/commands/batch');
+const ReverseCommand = require('../src/commands/reverse');
 
 program
   .name('zipcode-lookup')
@@ -78,6 +79,39 @@ program
       // Map format option to output for backward compatibility with command implementations
       const result = await command.execute({
         zipcode: options.zip,
+        output: options.format,
+        ...options
+      });
+      console.log(result);
+    } catch (error) {
+      console.error('Error:', error.message);
+      process.exit(1);
+    }
+  });
+
+// Reverse lookup command
+program
+  .command('reverse')
+  .description('Find the nearest zipcode for given coordinates')
+  .requiredOption('--lat <latitude>', 'Latitude coordinate (-90 to 90)', parseFloat)
+  .requiredOption('--lon <longitude>', 'Longitude coordinate (-180 to 180)', parseFloat)
+  .option('-s, --source <type>', 'Data source: nominatim, zippopotam, zipcodes, auto', 'auto')
+  .option('--compare <type>', 'Compare with another data source: nominatim, zippopotam, zipcodes')
+  .option('--format <format>', 'Output format: json, csv, yaml, table', 'table')
+  .option('--include-distance', 'Include distance from input coordinates', false)
+  .option('--include-coordinates', 'Include zipcode center coordinates', false)
+  .option('--nearest <count>', 'Number of nearest zipcodes to return', (value) => parseInt(value, 10), 1)
+  .option('-m, --miles <distance>', 'Maximum distance in miles to include results', parseFloat)
+  .action(async (options) => {
+    const command = new ReverseCommand();
+    try {
+      if (process.env.DEBUG) {
+        console.log('🔧 CLI options received:', JSON.stringify(options, null, 2));
+      }
+      // Map format option to output for backward compatibility with command implementations
+      const result = await command.execute({
+        lat: options.lat,
+        lon: options.lon,
         output: options.format,
         ...options
       });
