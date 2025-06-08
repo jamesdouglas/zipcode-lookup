@@ -19,7 +19,7 @@ program
   .requiredOption('-z, --zip <zipcode>', 'Base zipcode for radius search')
   .requiredOption('-m, --miles <distance>', 'Radius in miles', parseFloat)
   .option('-s, --source <type>', 'Data source: nominatim, zippopotam, zipcodes, local, auto', 'auto')
-  .option('-o, --output <format>', 'Output format: json, csv, yaml, table', 'table')
+  .option('--format <format>', 'Output format: json, csv, yaml, table', 'table')
   .option('--include-distance', 'Include distance in output', false)
   .option('--include-coordinates', 'Include latitude/longitude coordinates', false)
   .option('--include-city', 'Include city name', false)
@@ -28,7 +28,13 @@ program
   .action(async (options) => {
     const command = new RadiusCommand();
     try {
-      const result = await command.execute({ zipcode: options.zip, miles: options.miles, ...options });
+      // Map format option to output for backward compatibility with command implementations
+      const result = await command.execute({
+        zipcode: options.zip,
+        miles: options.miles,
+        output: options.format,
+        ...options
+      });
       console.log(result);
     } catch (error) {
       console.error('Error:', error.message);
@@ -44,12 +50,13 @@ program
   .option('-s, --state <code>', 'State code (e.g., CA, TX)')
   .option('--county <name>', 'County name')
   .option('--source <type>', 'Data source: nominatim, zippopotam, zipcodes, local, auto', 'auto')
-  .option('-o, --output <format>', 'Output format: json, csv, yaml, table', 'table')
+  .option('--format <format>', 'Output format: json, csv, yaml, table', 'table')
   .option('--include-coordinates', 'Include latitude/longitude coordinates', false)
   .action(async (options) => {
     const command = new LocationCommand();
     try {
-      const result = await command.execute(options);
+      // Map format option to output for backward compatibility with command implementations
+      const result = await command.execute({ ...options, output: options.format });
       console.log(result);
     } catch (error) {
       console.error('Error:', error.message);
@@ -63,11 +70,16 @@ program
   .description('Get census tract information for zipcodes')
   .requiredOption('-z, --zip <zipcode>', 'Zipcode to lookup')
   .option('--include-boundaries', 'Include tract boundary coordinates', false)
-  .option('-o, --output <format>', 'Output format: json, csv, yaml, table', 'table')
+  .option('--format <format>', 'Output format: json, csv, yaml, table', 'table')
   .action(async (options) => {
     const command = new CensusCommand();
     try {
-      const result = await command.execute({ zipcode: options.zip, ...options });
+      // Map format option to output for backward compatibility with command implementations
+      const result = await command.execute({
+        zipcode: options.zip,
+        output: options.format,
+        ...options
+      });
       console.log(result);
     } catch (error) {
       console.error('Error:', error.message);
