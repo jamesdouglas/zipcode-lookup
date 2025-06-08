@@ -16,10 +16,12 @@ A comprehensive command-line interface for zipcode lookup, radius search, locati
 ## 📦 Installation
 
 ### Prerequisites
+
 - Node.js 18.0.0 or higher
 - npm or yarn
 
 ### Quick Install
+
 ```bash
 # Clone the repository
 git clone https://github.com/jamesdouglas/zipcode-lookup.git
@@ -35,112 +37,22 @@ npm link
 ```
 
 ### Dependencies
+
 ```bash
 npm install axios chalk cli-table3 commander fs-extra js-yaml ora papaparse yargs zipcodes
 ```
 
-## 🏗️ Architecture Overview
+## Diagrams
 
-```mermaid
-graph TB
-    CLI[CLI Interface<br/>Commander.js] --> Router[Main Router<br/>src/index.js]
-
-    Router --> RC[Radius Command]
-    Router --> LC[Location Command]
-    Router --> CC[Census Command]
-    Router --> BC[Batch Command]
-
-    RC --> DS[Data Sources]
-    LC --> DS
-    CC --> DS
-    BC --> DS
-
-    DS --> ZP[Zipcodes Package<br/>Offline US Data]
-    DS --> API[External APIs<br/>Zippopotam.us<br/>Nominatim/OSM<br/>Census Bureau]
-
-    RC --> UTILS[Utilities]
-    LC --> UTILS
-    CC --> UTILS
-    BC --> UTILS
-
-    UTILS --> DIST[Distance Calc<br/>Haversine Formula]
-    UTILS --> FMT[Output Formatters<br/>JSON/CSV/YAML/Table]
-    UTILS --> CSV[CSV Handler<br/>Batch Processing]
-    UTILS --> CACHE[Response Cache<br/>Performance]
-
-    style CLI fill:#e1f5fe
-    style DS fill:#f3e5f5
-    style UTILS fill:#e8f5e8
-```
-
-## 🔄 Data Source Fallback Strategy
-
-```mermaid
-flowchart TD
-    START([User Query]) --> ZIPCODE[Use Zipcodes Package]
-
-    ZIPCODE --> ZQUERY[Query Offline Package]
-    ZQUERY --> ZRESULT{Results Found?}
-    ZRESULT -->|✅ Yes| SUCCESS[Return Results]
-    ZRESULT -->|❌ No| API[External API Fallback]
-
-    API --> NOMINATIM[Query Nominatim/OSM]
-    NOMINATIM --> NRESULT{Results Found?}
-    NRESULT -->|✅ Yes| SUCCESS
-    NRESULT -->|❌ No| AQUERY[Query Zippopotam.us]
-    AQUERY --> ARESULT{Results Found?}
-    ARESULT -->|✅ Yes| SUCCESS
-    ARESULT -->|❌ No| ERROR[No Results Found]
-
-    SUCCESS --> FORMAT[Format Output<br/>JSON/CSV/YAML/Table]
-    FORMAT --> OUTPUT([Return to User])
-
-    ERROR --> OUTPUT
-
-    style ZIPCODE fill:#c8e6c9
-    style API fill:#ffcdd2
-    style SUCCESS fill:#dcedc8
-```
+For a visual overview of the architecture, command structure, data flow and data source fallbacks, refer to [DIAGRAMS.md](DIAGRAMS.md).
 
 ## 🚀 Usage
-
-### Command Structure
-
-```mermaid
-graph LR
-    CLI[zipcode-lookup] --> R[radius]
-    CLI --> L[location]
-    CLI --> C[census]
-    CLI --> B[batch]
-
-    R --> R1[--zip 90210]
-    R --> R2[--miles 25]
-    R --> R3[--include-distance]
-
-    L --> L1[--city Los Angeles]
-    L --> L2[--state CA]
-    L --> L3[--county Los Angeles]
-
-    C --> C1[--zip 90210]
-    C --> C2[--include-boundaries]
-
-    B --> B1[--input input.csv]
-    B --> B2[--output output.csv]
-    B --> B3[--operation radius]
-    B --> B4[--miles 25]
-    B --> B6[--include-distance]
-
-    style R fill:#9ff
-    style L fill:#99f
-    style C fill:#aaa
-    style B fill:#bb1
-```
-
-## Usage Examples
 
 ### 1. Radius Search
 
 Find all zipcodes within a specified distance from a center point.
+
+For a visual overview of the command structure and option relationships, refer to [DIAGRAMS.md - Command Structure](DIAGRAMS.md#command-structure).
 
 ```bash
 # Basic radius search
@@ -161,6 +73,7 @@ zipcode-lookup radius --zip 90210 --miles 25 --format json
 ```
 
 **Example Output:**
+
 ```
 ┌─────────┬────────────────────┬───────┬──────────┬───────────┬────────────────┐
 │ zipcode │ city               │ state │ latitude │ longitude │ distance_miles │
@@ -218,6 +131,7 @@ zipcode-lookup batch --input zipcodes.csv --output results.csv --operation dista
 ```
 
 **Input CSV Format for Batch Radius:**
+
 ```csv
 zipcode,miles
 90210,25
@@ -226,6 +140,7 @@ zipcode,miles
 ```
 
 **Input CSV Format for Batch Location:**
+
 ```csv
 city,state
 Los Angeles,CA
@@ -237,58 +152,63 @@ Chicago,IL
 
 ### Global Options
 
-| Option | Alias | Description | Default |
-|--------|-------|-------------|---------|
-| `--format` | `-f` | Output format (json, csv, yaml, table) | `table` |
-| `--fields` | | Comma-separated fields to include | All fields |
-| `--source` | `-s` | Data source (nominatim, zippopotam, zipcodes, local, auto) | `auto` |
-| `--help` | `-h` | Show help information | - |
+| Option     | Alias | Description                                                | Default    |
+| ---------- | ----- | ---------------------------------------------------------- | ---------- |
+| `--format` | `-f`  | Output format (json, csv, yaml, table)                     | `table`    |
+| `--fields` |       | Comma-separated fields to include                          | All fields |
+| `--source` | `-s`  | Data source (nominatim, zippopotam, zipcodes, local, auto) | `auto`     |
+| `--help`   | `-h`  | Show help information                                      | -          |
 
 ### Command-Specific Options
 
 #### Radius Command
-| Option | Description | Required |
-|--------|-------------|----------|
-| `-z, --zip` | Center zipcode | ✅ |
-| `-m, --miles` | Radius in miles | ✅ |
-| `--include-distance` | Include distance in output | ❌ |
-| `--include-coordinates` | Include latitude/longitude coordinates | ❌ |
-| `--include-city` | Include city name | ❌ |
-| `--include-state` | Include state | ❌ |
-| `--custom-field` | Include custom field from data | ❌ |
+
+| Option                  | Description                            | Required |
+| ----------------------- | -------------------------------------- | -------- |
+| `-z, --zip`             | Center zipcode                         | ✅        |
+| `-m, --miles`           | Radius in miles                        | ✅        |
+| `--include-distance`    | Include distance in output             | ❌        |
+| `--include-coordinates` | Include latitude/longitude coordinates | ❌        |
+| `--include-city`        | Include city name                      | ❌        |
+| `--include-state`       | Include state                          | ❌        |
+| `--custom-field`        | Include custom field from data         | ❌        |
 
 #### Location Command
-| Option | Description | Required |
-|--------|-------------|----------|
-| `-c, --city` | City name | ✅ (or county) |
-| `-s, --state` | State code (e.g., CA, TX) | ❌ |
-| `--county` | County name | ✅ (or city) |
-| `--include-coordinates` | Include latitude/longitude coordinates | ❌ |
+
+| Option                  | Description                            | Required      |
+| ----------------------- | -------------------------------------- | ------------- |
+| `-c, --city`            | City name                              | ✅ (or county) |
+| `-s, --state`           | State code (e.g., CA, TX)              | ❌             |
+| `--county`              | County name                            | ✅ (or city)   |
+| `--include-coordinates` | Include latitude/longitude coordinates | ❌             |
 
 #### Census Command
-| Option | Description | Required |
-|--------|-------------|----------|
-| `-z, --zip` | Zipcode to lookup | ✅ |
-| `--include-boundaries` | Include tract boundary coordinates | ❌ |
+
+| Option                 | Description                        | Required |
+| ---------------------- | ---------------------------------- | -------- |
+| `-z, --zip`            | Zipcode to lookup                  | ✅        |
+| `--include-boundaries` | Include tract boundary coordinates | ❌        |
 
 #### Batch Command
-| Option | Description | Required |
-|--------|-------------|----------|
-| `-i`, `--input` | Input CSV file path | ✅ |
-| `-o`, `--output` | Output CSV file path | ✅ |
-| `--operation` | Operation: radius, location, census, distance | ✅ |
-| `--source` | Data source: nominatim, zippopotam, zipcodes, local, auto | ❌ |
-| `--chunk-size` | Processing chunk size | ❌ |
-| `--progress` | Show progress bar | ❌ |
-| `--radius` | Radius for batch radius operations | if operation = radius |
-| `-m`, `--miles` | Radius in miles (alias for --radius) | if operation = radius |
-| `--centroid-zipcode` | Centroid zipcode for distance operations | if operation = distance |
-| `--include-distance` | Include distance in output | ❌ |
 
+| Option               | Description                                               | Required                |
+| -------------------- | --------------------------------------------------------- | ----------------------- |
+| `-i`, `--input`      | Input CSV file path                                       | ✅                       |
+| `-o`, `--output`     | Output CSV file path                                      | ✅                       |
+| `--operation`        | Operation: radius, location, census, distance             | ✅                       |
+| `--source`           | Data source: nominatim, zippopotam, zipcodes, local, auto | ❌                       |
+| `--chunk-size`       | Processing chunk size                                     | ❌                       |
+| `--progress`         | Show progress bar                                         | ❌                       |
+| `--radius`           | Radius for batch radius operations                        | if operation = radius   |
+| `-m`, `--miles`      | Radius in miles (alias for --radius)                      | if operation = radius   |
+| `--centroid-zipcode` | Centroid zipcode for distance operations                  | if operation = distance |
+| `--include-distance` | Include distance in output                                | ❌                       |
 
 ## 🔧 Development
 
 ### Project Structure
+
+For a visual overview of the architecture, refer to [DIAGRAMS.md - Architecture Overview](DIAGRAMS.md#architecture-overview).
 
 ```
 zipcode-lookup/
@@ -312,46 +232,6 @@ zipcode-lookup/
 └── README.md                      # This file
 ```
 
-### Data Flow Architecture
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant CLI
-    participant Router
-    participant Command
-    participant DataSource
-    participant Utils
-
-    User->>CLI: zipcode-lookup radius --zip 90210 --miles 25
-    CLI->>Router: Parse arguments and route
-    Router->>Command: Execute radius command
-
-    Command->>DataSource: Get center point coordinates
-    DataSource->>DataSource: Try Zipcodes Package
-    alt Zipcodes Package fails
-        DataSource->>DataSource: Try Nominatim API
-        alt Nominatim API fails
-            DataSource->>DataSource: Try Zippopotam API
-        end
-    end
-    DataSource-->>Command: Return coordinates
-
-    Command->>DataSource: Find zipcodes in radius
-    DataSource->>DataSource: Apply same fallback strategy
-    DataSource-->>Command: Return zipcode list
-
-    Command->>Utils: Calculate distances
-    Utils-->>Command: Return enhanced results
-
-    Command->>Utils: Format output
-    Utils-->>Command: Return formatted data
-
-    Command-->>Router: Return results
-    Router-->>CLI: Return final output
-    CLI-->>User: Display results
-```
-
 ### Setting Up Development Environment
 
 ```bash
@@ -373,6 +253,7 @@ npm link
 ### Adding New Commands
 
 1. **Create command file** in `src/commands/`:
+
 ```javascript
 class NewCommand {
     async execute(options) {
@@ -383,12 +264,14 @@ module.exports = NewCommand;
 ```
 
 2. **Add to router** in `src/index.js`:
+
 ```javascript
 const NewCommand = require('./commands/new-command');
 // Register in command mapping
 ```
 
 3. **Add CLI interface** in `bin/zipcode-lookup.js`:
+
 ```javascript
 program
     .command('new-command')
@@ -403,36 +286,41 @@ program
 
 ### Response Times (Average)
 
-| Command | Zipcodes Package | Nominatim API | Zippopotam API |
-|---------|------------------|---------------|----------------|
-| Single Zipcode | 15ms | 180ms | 250ms |
-| Radius Search (25 miles) | 45ms | 1.8s | 2.5s |
-| Batch (100 items) | 800ms | 35s | 45s |
+| Command                  | Zipcodes Package | Nominatim API | Zippopotam API |
+| ------------------------ | ---------------- | ------------- | -------------- |
+| Single Zipcode           | 15ms             | 180ms         | 250ms          |
+| Radius Search (25 miles) | 45ms             | 1.8s          | 2.5s           |
+| Batch (100 items)        | 800ms            | 35s           | 45s            |
 
 ### Coverage Statistics
 
-| Data Source | US Zipcodes | Update Frequency |
-|-------------|-------------|------------------|
-| Zipcodes Package | ~42,000 (complete) | Package updates |
-| External API | ~40,000 | Real-time |
+| Data Source      | US Zipcodes        | Update Frequency |
+| ---------------- | ------------------ | ---------------- |
+| Zipcodes Package | ~42,000 (complete) | Package updates  |
+| External API     | ~40,000            | Real-time        |
 
 ## 🔍 Troubleshooting
 
 ### Common Issues
 
 #### API Rate Limiting
+
 ```bash
 API error: Request failed with status code 429
 ```
+
 **Solution**: The tool automatically falls back to offline sources. Consider using `--source zipcodes` for faster queries.
 
 #### Invalid Zipcode
+
 ```bash
 Error: Could not find coordinates for zipcode 00000
 ```
+
 **Solution**: Verify the zipcode exists. Try using different data sources with `--source nominatim` or `--source zippopotam` for broader coverage.
 
 ### Debug Mode
+
 ```bash
 # Enable verbose logging
 DEBUG=zipcode-lookup* zipcode-lookup radius --zip 90210 --miles 25
@@ -444,6 +332,7 @@ zipcode-lookup location --city "Test" --state CA --source nominatim
 ## 🤝 Contributing
 
 ### Development Workflow
+
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/new-feature`
 3. Make changes and add tests
@@ -451,6 +340,7 @@ zipcode-lookup location --city "Test" --state CA --source nominatim
 5. Submit a pull request
 
 ### Code Style
+
 - Use ES6+ features
 - Follow ESLint configuration
 - Add JSDoc comments for public methods
