@@ -1,11 +1,13 @@
 const { formatOutput, filterFields } = require('../utils/formatters');
 const { calculateDistance } = require('../utils/distance');
 const APIClient = require('../data/sources/api-client');
+const MapGenerator = require('../utils/map-generator');
 const zipcodes = require('zipcodes');
 
 class RadiusSearchCommand {
     constructor() {
         this.apiClient = new APIClient();
+        this.mapGenerator = new MapGenerator();
     }
 
     async execute(options) {
@@ -39,6 +41,15 @@ class RadiusSearchCommand {
             // Apply field filtering if specified
             if (fields) {
                 processedResults = filterFields(processedResults, { fields });
+            }
+
+            // Generate KML if requested
+            if (options.kml) {
+                await this.mapGenerator.generateKmlFile(processedResults, {
+                    centerPoint: centerPoint,
+                    source: source,
+                    filename: `radius-${zipcode}-${radiusMiles}mi.kml`
+                });
             }
 
             // Format and return output
@@ -121,6 +132,17 @@ class RadiusSearchCommand {
                     source,
                     compareSource
                 );
+            }
+
+            // Generate KML if requested
+            if (options.kml) {
+                await this.mapGenerator.generateKmlFile(primaryProcessed, {
+                    centerPoint: primaryPoint,
+                    compareResults: compareProcessed,
+                    source: source,
+                    compareSource: compareSource,
+                    filename: `radius-comparison-${zipcode}-${radiusMiles}mi.kml`
+                });
             }
 
             // Handle table format specially for comparison data
@@ -282,12 +304,47 @@ class RadiusSearchCommand {
     async findZipcodesInRadius(centerPoint, radiusMiles, source) {
         // Handle API-specific sources
         if (source === 'nominatim' || source === 'zippopotam') {
-            // APIs don't support radius search, so fall back to zipcodes package
-            return await this.zipcodesRadiusSearch(centerPoint, radiusMiles);
+            // APIs don't support radius search, so get list from zipcodes package
+            // but fetch coordinates from the specified source
+            return await this.zipcodesRadiusSearchWithSourceCoords(centerPoint, radiusMiles, source);
         }
 
         // Use zipcodes package for radius search (default and most efficient)
         return await this.zipcodesRadiusSearch(centerPoint, radiusMiles);
+    }
+
+    async zipcodesRadiusSearchWithSourceCoords(centerPoint, radiusMiles, source) {
+        try {
+            // First get list of zipcodes in radius using zipcodes package
+            const nearbyZipArray = zipcodes.radius(centerPoint.zipcode, radiusMiles);
+            const nearbyZipcodes = [];
+
+            for (const zipcode of nearbyZipArray) {
+                try {
+                    // Get coordinates from the specified source instead of zipcodes package
+                    const sourceData = await this.getCenterPoint(zipcode, source);
+                    if (sourceData) {
+                        nearbyZipcodes.push({
+                            zipcode: sourceData.zipcode,
+                            latitude: sourceData.latitude,
+                            longitude: sourceData.longitude,
+                            city: sourceData.city,
+                            state: sourceData.state
+                        });
+                    }
+                } catch (error) {
+                    // If source fails, don't add fallback data for comparison sources
+                    // This prevents identical coordinates with different distances
+                    console.warn(`Failed to get ${zipcode} from ${source}, excluding from ${source} results`);
+                }
+            }
+
+            return nearbyZipcodes;
+        } catch (error) {
+            console.warn(`Source-specific radius search failed: ${error.message}`);
+            // Fall back to standard zipcodes search
+            return await this.zipcodesRadiusSearch(centerPoint, radiusMiles);
+        }
     }
 
     async zipcodesRadiusSearch(centerPoint, radiusMiles) {

@@ -1,10 +1,12 @@
 const { formatOutput, filterFields } = require('../utils/formatters');
 const APIClient = require('../data/sources/api-client');
+const MapGenerator = require('../utils/map-generator');
 const zipcodes = require('zipcodes');
 
 class LocationSearchCommand {
     constructor() {
         this.apiClient = new APIClient();
+        this.mapGenerator = new MapGenerator();
     }
 
     async execute(options) {
@@ -34,6 +36,13 @@ class LocationSearchCommand {
             // Apply field filtering if specified
             if (fields) {
                 results = filterFields(results, { fields });
+            }
+
+            // Generate map if requested
+            if (options.map || options.openMap) {
+                await this.mapGenerator.generateSingleSourceMap(results, null, {
+                    openMap: options.openMap
+                });
             }
 
             // Format and return output

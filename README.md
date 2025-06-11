@@ -72,6 +72,10 @@ zipcode-lookup radius --zip 90210 --miles 25 --source zippopotam
 zipcode-lookup radius --zip 92054 --miles 5 --include-distance --source zipcodes --compare nominatim
 zipcode-lookup radius --zip 90210 --miles 3 --include-distance --source nominatim --compare zippopotam
 
+# Generate interactive maps (Google Maps with color-coded markers)
+zipcode-lookup radius --zip 92054 --miles 5 --include-distance --source zipcodes --compare nominatim --map
+zipcode-lookup radius --zip 92054 --miles 5 --include-distance --source zipcodes --compare nominatim --open-map
+
 # Custom output format
 zipcode-lookup radius --zip 90210 --miles 25 --format csv > results.csv
 zipcode-lookup radius --zip 90210 --miles 25 --format json
@@ -219,6 +223,8 @@ Chicago,IL
 | `--include-city`        | Include city name                      | ❌        |
 | `--include-state`       | Include state                          | ❌        |
 | `--custom-field`        | Include custom field from data         | ❌        |
+| `--map`                 | Generate Google Maps URL with markers  | ❌        |
+| `--open-map`            | Generate and auto-open map in browser  | ❌        |
 
 #### Location Command
 

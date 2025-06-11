@@ -27,6 +27,7 @@ program
   .option('--include-city', 'Include city name', false)
   .option('--include-state', 'Include state', false)
   .option('--custom-field <field>', 'Include custom field from data')
+  .option('--kml', 'Generate KML file for Google Earth', false)
   .action(async (options) => {
     const command = new RadiusCommand();
     try {
@@ -54,6 +55,7 @@ program
   .option('--source <type>', 'Data source: nominatim, zippopotam, zipcodes, local, auto', 'auto')
   .option('--format <format>', 'Output format: json, csv, yaml, table', 'table')
   .option('--include-coordinates', 'Include latitude/longitude coordinates', false)
+  .option('--kml', 'Generate KML file for Google Earth', false)
   .action(async (options) => {
     const command = new LocationCommand();
     try {
@@ -102,6 +104,7 @@ program
   .option('--include-coordinates', 'Include zipcode center coordinates', false)
   .option('--nearest <count>', 'Number of nearest zipcodes to return', (value) => parseInt(value, 10), 1)
   .option('-m, --miles <distance>', 'Maximum distance in miles to include results', parseFloat)
+  .option('--kml', 'Generate KML file for Google Earth', false)
   .action(async (options) => {
     const command = new ReverseCommand();
     try {

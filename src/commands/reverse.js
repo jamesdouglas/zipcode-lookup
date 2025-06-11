@@ -2,11 +2,13 @@ const { formatOutput, filterFields } = require('../utils/formatters');
 const { calculateDistance } = require('../utils/distance');
 const APIClient = require('../data/sources/api-client');
 const CoordinateGrid = require('../utils/coordinate-grid');
+const MapGenerator = require('../utils/map-generator');
 const zipcodes = require('zipcodes');
 
 class ReverseCommand {
     constructor() {
         this.apiClient = new APIClient();
+        this.mapGenerator = new MapGenerator();
     }
 
     async execute(options) {
@@ -125,6 +127,14 @@ class ReverseCommand {
             let finalResults = filteredResults;
             if (fields) {
                 finalResults = filterFields(filteredResults, { fields });
+            }
+
+            // Generate map if requested
+            if (options.map || options.openMap) {
+                const centerPoint = { latitude: lat, longitude: lon };
+                await this.mapGenerator.generateSingleSourceMap(finalResults, centerPoint, {
+                    openMap: options.openMap
+                });
             }
 
             return formatOutput(finalResults, output);

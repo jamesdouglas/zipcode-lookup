@@ -21,7 +21,15 @@
     "distance",
     "radius"
   ],
-  "author": "Your Name",
+  "author": "James Douglas",
+  "homepage": "https://github.com/jamesdouglas/zipcode-lookup#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jamesdouglas/zipcode-lookup.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jamesdouglas/zipcode-lookup/issues"
+  },
   "license": "MIT",
   "dependencies": {
     "axios": "^1.6.0",
@@ -30,6 +38,7 @@
     "commander": "^11.1.0",
     "fs-extra": "^11.2.0",
     "js-yaml": "^4.1.0",
+    "open": "^8.4.2",
     "ora": "^8.0.1",
     "papaparse": "^5.4.1",
     "yargs": "^17.7.2",
