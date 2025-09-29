@@ -45,8 +45,9 @@ class APIClient {
     try {
       const data = await this.getNominatimZipcode(zipcode);
       if (data) {
-        this.setCache(cacheKey, data);
-        return data;
+        const result = { ...data, source: 'nominatim' };
+        this.setCache(cacheKey, result);
+        return result;
       }
     } catch (error) {
       console.warn(`Nominatim API failed for ${zipcode}, trying Zippopotam.us...`);
@@ -59,8 +60,9 @@ class APIClient {
       });
 
       const data = this.transformZippopotamData(response.data);
-      this.setCache(cacheKey, data);
-      return data;
+      const result = { ...data, source: 'zippopotam' };
+      this.setCache(cacheKey, result);
+      return result;
     } catch (error) {
       console.error(`All APIs failed for zipcode ${zipcode}:`, error.message);
     }
