@@ -559,7 +559,8 @@ class RadiusSearchCommand {
                     `${comparisonData.source_comparison.compare_source} Dist`,
                     `${comparisonData.source_comparison.compare_source} Lat`,
                     `${comparisonData.source_comparison.compare_source} Lon`,
-                    'Diff',
+                    'Dist. Diff',
+                    'Coord. Diff',
                     'In Primary',
                     'In Compare'
                 ].map(h => chalk.cyan(h)),
@@ -581,10 +582,13 @@ class RadiusSearchCommand {
                 const compareLon = item.compare_coordinates ?
                     chalk.green(item.compare_coordinates.longitude.toString()) : chalk.gray('N/A');
 
-                const diff = item.distance_difference !== undefined ?
-                    (item.distance_difference > 0 ? chalk.red(`+${item.distance_difference}`) :
-                     item.distance_difference < 0 ? chalk.blue(item.distance_difference.toString()) :
-                     chalk.green('0')) : chalk.gray('N/A');
+                const distDiff = item.distance_difference !== undefined ?
+                    (item.distance_difference > 0 ? chalk.red(`+${item.distance_difference.toFixed(2)}`) :
+                     item.distance_difference < 0 ? chalk.blue(item.distance_difference.toFixed(2)) :
+                     chalk.green('0.00')) : chalk.gray('N/A');
+
+                const coordDiff = item.coordinate_difference_miles !== undefined ?
+                    chalk.magenta(item.coordinate_difference_miles.toFixed(2)) : chalk.gray('N/A');
 
                 detailTable.push([
                     chalk.yellow(item.zipcode),
@@ -594,7 +598,8 @@ class RadiusSearchCommand {
                     compareDist,
                     compareLat,
                     compareLon,
-                    diff,
+                    distDiff,
+                    coordDiff,
                     item.in_primary ? chalk.green('✓') : chalk.red('✗'),
                     item.in_compare ? chalk.green('✓') : chalk.red('✗')
                 ]);
