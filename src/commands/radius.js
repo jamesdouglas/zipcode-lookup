@@ -289,7 +289,8 @@ class RadiusSearchCommand {
                     latitude: result.latitude,
                     longitude: result.longitude,
                     city: result.city,
-                    state: result.state
+                    state: result.state,
+                    source: 'nominatim'
                 };
             }
             throw new Error(`Nominatim API could not find zipcode ${zipcode}`);
@@ -303,7 +304,8 @@ class RadiusSearchCommand {
                     latitude: result.latitude,
                     longitude: result.longitude,
                     city: result.city,
-                    state: result.state
+                    state: result.state,
+                    source: 'zippopotam'
                 };
             }
             throw new Error(`Zippopotam API could not find zipcode ${zipcode}`);
@@ -318,7 +320,8 @@ class RadiusSearchCommand {
                     latitude: zipData.latitude,
                     longitude: zipData.longitude,
                     city: zipData.city,
-                    state: zipData.state
+                    state: zipData.state,
+                    source: 'zipcodes'
                 };
             }
         } catch (error) {
@@ -335,7 +338,8 @@ class RadiusSearchCommand {
                     latitude: result.latitude,
                     longitude: result.longitude,
                     city: result.city,
-                    state: result.state
+                    state: result.state,
+                    source: result.source // The API client now returns the source
                 };
             }
         }
