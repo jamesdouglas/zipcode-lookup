@@ -451,7 +451,7 @@ class RadiusSearchCommand {
         }
     }
 
-    processResults(results, centerPoint, radiusMiles, includeDistance) {
+    processResults(results, centerPoint, radiusMiles, includeDistance, isComparison = false) {
         // Validate inputs
         if (!Array.isArray(results)) {
             console.warn(`Results is not an array: ${typeof results}`);
@@ -460,6 +460,13 @@ class RadiusSearchCommand {
 
         return results
             .map(zipData => {
+                if (!zipData || typeof zipData.latitude !== 'number' || typeof zipData.longitude !== 'number') {
+                    if (process.env.DEBUG) {
+                        console.warn(`Skipping invalid zipData: ${JSON.stringify(zipData)}`);
+                    }
+                    return null;
+                }
+
                 const distance = calculateDistance(
                     centerPoint.latitude,
                     centerPoint.longitude,
@@ -467,8 +474,8 @@ class RadiusSearchCommand {
                     zipData.longitude
                 );
 
-                // Only include zipcodes within the specified radius
-                if (distance > radiusMiles) {
+                // In comparison mode, we want to see all results, even if one is outside the radius
+                if (!isComparison && distance > radiusMiles) {
                     return null;
                 }
 
