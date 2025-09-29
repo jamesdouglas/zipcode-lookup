@@ -70,11 +70,11 @@ zipcode-lookup radius --zip 90210 --miles 25 --source zippopotam
 
 # Compare data sources - analyze coordinate and distance differences
 zipcode-lookup radius --zip 92054 --miles 5 --include-distance --source zipcodes --compare nominatim
+# Data source comparison with multiple providers
 zipcode-lookup radius --zip 90210 --miles 3 --include-distance --source nominatim --compare zippopotam
 
-# Generate interactive maps (Google Maps with color-coded markers)
-zipcode-lookup radius --zip 92054 --miles 5 --include-distance --source zipcodes --compare nominatim --map
-zipcode-lookup radius --zip 92054 --miles 5 --include-distance --source zipcodes --compare nominatim --open-map
+# Generate KML files for Google Earth visualization
+zipcode-lookup radius --zip 92054 --miles 5 --include-distance --source zipcodes --compare nominatim --kml
 
 # Custom output format
 zipcode-lookup radius --zip 90210 --miles 25 --format csv > results.csv
@@ -223,8 +223,7 @@ Chicago,IL
 | `--include-city`        | Include city name                      | ❌        |
 | `--include-state`       | Include state                          | ❌        |
 | `--custom-field`        | Include custom field from data         | ❌        |
-| `--map`                 | Generate Google Maps URL with markers  | ❌        |
-| `--open-map`            | Generate and auto-open map in browser  | ❌        |
+| `--kml`                 | Generate KML file for Google Earth     | ❌        |
 
 #### Location Command
 
@@ -234,6 +233,7 @@ Chicago,IL
 | `-s, --state`           | State code (e.g., CA, TX)              | ❌             |
 | `--county`              | County name                            | ✅ (or city)   |
 | `--include-coordinates` | Include latitude/longitude coordinates | ❌             |
+| `--kml`                 | Generate KML file for Google Earth     | ❌             |
 
 #### Reverse Command
 
@@ -246,6 +246,7 @@ Chicago,IL
 | `-m, --miles`           | Maximum distance in miles to include   | ❌        |
 | `--include-distance`    | Include distance from coordinates      | ❌        |
 | `--include-coordinates` | Include zipcode center coordinates     | ❌        |
+| `--kml`                 | Generate KML file for Google Earth     | ❌        |
 
 **Note**: `--nearest` and `--miles` are mutually exclusive options. Use `--nearest` for closest N zipcodes or `--miles` for all zipcodes within distance.
 
