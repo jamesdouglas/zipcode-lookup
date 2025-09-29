@@ -129,11 +129,12 @@ class ReverseCommand {
                 finalResults = filterFields(filteredResults, { fields });
             }
 
-            // Generate map if requested
-            if (options.map || options.openMap) {
+            // Generate KML if requested
+            if (options.kml) {
                 const centerPoint = { latitude: lat, longitude: lon };
-                await this.mapGenerator.generateSingleSourceMap(finalResults, centerPoint, {
-                    openMap: options.openMap
+                await this.mapGenerator.generateKmlFile(finalResults, {
+                    centerPoint: centerPoint,
+                    filename: `reverse-lookup-${lat}-${lon}.kml`
                 });
             }
 

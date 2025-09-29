@@ -38,10 +38,10 @@ class LocationSearchCommand {
                 results = filterFields(results, { fields });
             }
 
-            // Generate map if requested
-            if (options.map || options.openMap) {
-                await this.mapGenerator.generateSingleSourceMap(results, null, {
-                    openMap: options.openMap
+            // Generate KML if requested
+            if (options.kml) {
+                await this.mapGenerator.generateKmlFile(results, {
+                    filename: `location-search-${Date.now()}.kml`
                 });
             }
 
