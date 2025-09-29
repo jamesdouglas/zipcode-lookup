@@ -347,6 +347,39 @@ class RadiusSearchCommand {
         return null;
     }
 
+    async getZipcodeData(zipcodes, source) {
+        const results = [];
+        for (const zipcode of zipcodes) {
+            try {
+                const data = await this.getCenterPoint(zipcode, source);
+                if (data) {
+                    results.push(data);
+                }
+            } catch (error) {
+                if (process.env.DEBUG) {
+                    console.warn(`Could not retrieve data for zipcode ${zipcode} from source ${source}: ${error.message}`);
+                }
+            }
+        }
+        return results;
+    }
+
+    async getZipcodesInRadius(centerPoint, radiusMiles) {
+        try {
+            // Use the zipcodes package to get a list of zipcodes within the radius
+            return zipcodes.radius(centerPoint.zipcode, radiusMiles);
+        } catch (error) {
+            // Fallback to using coordinates if the zipcode isn't in the local package
+            console.warn(`Zipcode ${centerPoint.zipcode} not found in local data, falling back to coordinate-based radius search.`);
+            try {
+                return zipcodes.radius({ lat: centerPoint.latitude, lon: centerPoint.longitude }, radiusMiles);
+            } catch (coordError) {
+                console.error(`Coordinate-based radius search failed: ${coordError.message}`);
+                return [];
+            }
+        }
+    }
+
     async findZipcodesInRadius(centerPoint, radiusMiles, source) {
         // Handle API-specific sources
         if (source === 'nominatim' || source === 'zippopotam') {
