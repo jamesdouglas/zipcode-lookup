@@ -61,7 +61,9 @@ class RadiusSearchCommand {
     }
 
     async executeComparison(zipcode, source, compareSource, radiusMiles, options) {
-        const { includeDistance, output = 'table' } = options;
+        const { output = 'table' } = options;
+        // When comparing, we always want to include distance details.
+        const includeDistance = true;
 
         try {
             // Get coordinates from both sources
@@ -85,32 +87,44 @@ class RadiusSearchCommand {
             );
 
             // Get radius results from both sources
-            const primaryResults = await this.findZipcodesInRadius(primaryPoint, radiusMiles, source);
-            const compareResults = await this.findZipcodesInRadius(comparePoint, radiusMiles, compareSource);
+            const primaryZipcodes = new Set(await this.getZipcodesInRadius(primaryPoint, radiusMiles));
+            const compareZipcodes = new Set(await this.getZipcodesInRadius(comparePoint, radiusMiles));
 
-            // Process both result sets
-            const primaryProcessed = this.processResults(primaryResults, primaryPoint, radiusMiles, true);
-            const compareProcessed = this.processResults(compareResults, comparePoint, radiusMiles, true);
+            // Combine zipcodes from both sources
+            const allZipcodes = new Set([...primaryZipcodes, ...compareZipcodes]);
+
+            // Get full data for all zipcodes from both sources
+            const primaryResults = await this.getZipcodeData(allZipcodes, source);
+            const compareResults = await this.getZipcodeData(allZipcodes, compareSource);
+
+            // Process both result sets, indicating this is a comparison
+            const primaryProcessed = this.processResults(primaryResults, primaryPoint, radiusMiles, true, true);
+            const compareProcessed = this.processResults(compareResults, comparePoint, radiusMiles, true, true);
+
+            // Filter out results that are outside the radius in BOTH sources
+            const combinedProcessed = this.filterCombinedRadius(primaryProcessed, compareProcessed, radiusMiles);
+            const finalPrimary = combinedProcessed.primary;
+            const finalCompare = combinedProcessed.compare;
 
             // Build comparison output
             const comparisonData = {
                 zipcode: zipcode,
                 radius_miles: radiusMiles,
                 source_comparison: {
-                    primary_source: source,
-                    compare_source: compareSource,
+                    primary_source: primaryPoint.source,
+                    compare_source: comparePoint.source,
                     coordinate_difference_miles: parseFloat(coordinateDifference.toFixed(4))
                 },
                 coordinates: {
                     primary: {
-                        source: source,
+                        source: primaryPoint.source,
                         latitude: primaryPoint.latitude,
                         longitude: primaryPoint.longitude,
                         city: primaryPoint.city,
                         state: primaryPoint.state
                     },
                     compare: {
-                        source: compareSource,
+                        source: comparePoint.source,
                         latitude: comparePoint.latitude,
                         longitude: comparePoint.longitude,
                         city: comparePoint.city,
@@ -118,29 +132,29 @@ class RadiusSearchCommand {
                     }
                 },
                 results_summary: {
-                    primary_count: primaryProcessed.length,
-                    compare_count: compareProcessed.length,
-                    difference: primaryProcessed.length - compareProcessed.length
+                    primary_count: finalPrimary.length,
+                    compare_count: finalCompare.length,
+                    difference: finalPrimary.length - finalCompare.length
                 }
             };
 
             // If distance is requested, include detailed comparison
             if (includeDistance) {
                 comparisonData.detailed_comparison = this.buildDetailedComparison(
-                    primaryProcessed,
-                    compareProcessed,
-                    source,
-                    compareSource
+                    finalPrimary,
+                    finalCompare,
+                    primaryPoint.source,
+                    comparePoint.source
                 );
             }
 
             // Generate KML if requested
             if (options.kml) {
-                await this.mapGenerator.generateKmlFile(primaryProcessed, {
+                await this.mapGenerator.generateKmlFile(finalPrimary, {
                     centerPoint: primaryPoint,
-                    compareResults: compareProcessed,
-                    source: source,
-                    compareSource: compareSource,
+                    compareResults: finalCompare,
+                    source: primaryPoint.source,
+                    compareSource: comparePoint.source,
                     filename: `radius-comparison-${zipcode}-${radiusMiles}mi.kml`
                 });
             }
@@ -155,6 +169,34 @@ class RadiusSearchCommand {
         } catch (error) {
             throw new Error(`Comparison failed: ${error.message}`);
         }
+    }
+
+    filterCombinedRadius(primaryResults, compareResults, radiusMiles) {
+        const primaryMap = new Map(primaryResults.map(r => [r.zipcode, r]));
+        const compareMap = new Map(compareResults.map(r => [r.zipcode, r]));
+        const allZipcodes = new Set([...primaryMap.keys(), ...compareMap.keys()]);
+
+        const finalPrimary = [];
+        const finalCompare = [];
+
+        for (const zipcode of allZipcodes) {
+            const primary = primaryMap.get(zipcode);
+            const compare = compareMap.get(zipcode);
+
+            const inPrimaryRadius = primary && primary.distance_miles <= radiusMiles;
+            const inCompareRadius = compare && compare.distance_miles <= radiusMiles;
+
+            if (inPrimaryRadius || inCompareRadius) {
+                if (primary) {
+                    finalPrimary.push(primary);
+                }
+                if (compare) {
+                    finalCompare.push(compare);
+                }
+            }
+        }
+
+        return { primary: finalPrimary, compare: finalCompare };
     }
 
     buildDetailedComparison(primaryResults, compareResults, primarySource, compareSource) {
