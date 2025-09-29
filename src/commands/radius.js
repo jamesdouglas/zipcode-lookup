@@ -36,7 +36,7 @@ class RadiusSearchCommand {
             const results = await this.findZipcodesInRadius(centerPoint, radiusMiles, source);
 
             // Filter and enhance results
-            let processedResults = this.processResults(results, centerPoint, radiusMiles, includeDistance);
+            let processedResults = this.processResults(results, centerPoint, radiusMiles, includeDistance, false, options);
 
             // Apply field filtering if specified
             if (fields) {
@@ -98,8 +98,8 @@ class RadiusSearchCommand {
             const compareResults = await this.getZipcodeData(allZipcodes, compareSource);
 
             // Process both result sets, indicating this is a comparison
-            const primaryProcessed = this.processResults(primaryResults, primaryPoint, radiusMiles, true, true);
-            const compareProcessed = this.processResults(compareResults, comparePoint, radiusMiles, true, true);
+            const primaryProcessed = this.processResults(primaryResults, primaryPoint, radiusMiles, true, true, options);
+            const compareProcessed = this.processResults(compareResults, comparePoint, radiusMiles, true, true, options);
 
             // Filter out results that are outside the radius in BOTH sources
             const combinedProcessed = this.filterCombinedRadius(primaryProcessed, compareProcessed, radiusMiles);
@@ -451,7 +451,7 @@ class RadiusSearchCommand {
         }
     }
 
-    processResults(results, centerPoint, radiusMiles, includeDistance, isComparison = false) {
+    processResults(results, centerPoint, radiusMiles, includeDistance, isComparison = false, options = {}) {
         // Validate inputs
         if (!Array.isArray(results)) {
             console.warn(`Results is not an array: ${typeof results}`);
@@ -489,6 +489,11 @@ class RadiusSearchCommand {
 
                 if (includeDistance) {
                     result.distance_miles = parseFloat(distance.toFixed(2));
+                }
+
+                // Add custom field if provided
+                if (options.customField && options.customValue !== undefined) {
+                    result[options.customField] = options.customValue;
                 }
 
                 return result;

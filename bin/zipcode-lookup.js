@@ -27,6 +27,7 @@ program
   .option('--include-city', 'Include city name', false)
   .option('--include-state', 'Include state', false)
   .option('--custom-field <field>', 'Include custom field from data')
+  .option('--custom-value <value>', 'Value for custom field (requires --custom-field)')
   .option('--kml', 'Generate KML file for Google Earth', false)
   .action(async (options) => {
     const command = new RadiusCommand();
