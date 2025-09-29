@@ -140,6 +140,23 @@ function filterFields(data, includeOptions = {}) {
     return data;
   }
 
+  // If explicit fields list is provided, use only those fields
+  if (includeOptions.fields) {
+    const fieldsArray = typeof includeOptions.fields === 'string' 
+      ? includeOptions.fields.split(',').map(f => f.trim())
+      : includeOptions.fields;
+    
+    return data.map(item => {
+      const filtered = {};
+      fieldsArray.forEach(field => {
+        if (item.hasOwnProperty(field)) {
+          filtered[field] = item[field];
+        }
+      });
+      return filtered;
+    });
+  }
+
   // Base fields always included
   const baseFields = ['zipcode'];
 
