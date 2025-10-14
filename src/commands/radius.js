@@ -32,8 +32,11 @@ class RadiusSearchCommand {
                 throw new Error(`Could not find coordinates for zipcode ${zipcode}`);
             }
 
+            // For auto mode, use the same source that was actually used for the center point
+            const effectiveSource = centerPoint.source || source;
+
             // Find zipcodes within radius
-            const results = await this.findZipcodesInRadius(centerPoint, radiusMiles, source);
+            const results = await this.findZipcodesInRadius(centerPoint, radiusMiles, effectiveSource);
 
             // Filter and enhance results
             let processedResults = this.processResults(results, centerPoint, radiusMiles, includeDistance, false, options);
@@ -296,6 +299,21 @@ class RadiusSearchCommand {
             throw new Error(`Nominatim API could not find zipcode ${zipcode}`);
         }
 
+        if (source === 'googlemaps') {
+            const result = await this.apiClient.getGoogleMapsZipcode(zipcode);
+            if (result && result.latitude && result.longitude) {
+                return {
+                    zipcode,
+                    latitude: result.latitude,
+                    longitude: result.longitude,
+                    city: result.city,
+                    state: result.state,
+                    source: 'googlemaps'
+                };
+            }
+            throw new Error(`Google Maps API could not find zipcode ${zipcode}`);
+        }
+
         if (source === 'zippopotam') {
             const result = await this.apiClient.getZippopotamZipcode(zipcode);
             if (result && result.latitude && result.longitude) {
@@ -381,11 +399,17 @@ class RadiusSearchCommand {
     }
 
     async findZipcodesInRadius(centerPoint, radiusMiles, source) {
-        // Handle API-specific sources
-        if (source === 'nominatim' || source === 'zippopotam') {
+        // Handle API-specific sources that need consistent coordinate fetching
+        if (source === 'nominatim' || source === 'zippopotam' || source === 'googlemaps') {
             // APIs don't support radius search, so get list from zipcodes package
             // but fetch coordinates from the specified source
             return await this.zipcodesRadiusSearchWithSourceCoords(centerPoint, radiusMiles, source);
+        }
+
+        // For 'auto' mode, if center point came from an external source, maintain consistency
+        if (source === 'auto' && centerPoint.source && centerPoint.source !== 'zipcodes') {
+            console.log(`🔄 Auto mode detected external source '${centerPoint.source}' for center point, using same source for radius results`);
+            return await this.zipcodesRadiusSearchWithSourceCoords(centerPoint, radiusMiles, centerPoint.source);
         }
 
         // Use zipcodes package for radius search (default and most efficient)
