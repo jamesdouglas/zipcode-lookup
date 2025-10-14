@@ -1,0 +1,33 @@
+{
+  "googleMaps": {
+    "apiKey": "your-google-geocoding-api-key-here",
+    "enabled": true,
+    "timeout": 10000,
+    "caching": true,
+    "cacheTTL": 300000
+  },
+  "nominatim": {
+    "enabled": true,
+    "timeout": 30000,
+    "userAgent": "zipcode-lookup-cli/1.0.0",
+    "caching": true,
+    "cacheTTL": 300000
+  },
+  "zippopotam": {
+    "enabled": true,
+    "timeout": 30000,
+    "caching": true,
+    "cacheTTL": 300000
+  },
+  "api": {
+    "retries": 3,
+    "retryDelay": 1000,
+    "maxConcurrent": 5
+  },
+  "cache": {
+    "enabled": true,
+    "maxSize": 10000,
+    "ttl": 300000,
+    "cleanupInterval": 600000
+  }
+}
