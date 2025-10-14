@@ -4,10 +4,12 @@ const CensusSearchCommand = require('./commands/census');
 const BatchProcessingCommand = require('./commands/batch');
 const APIClient = require('./data/sources/api-client');
 const Cache = require('./utils/cache');
+const Config = require('./utils/config');
 const zipcodes = require('zipcodes');
 
 class ZipcodeLookup {
     constructor(options = {}) {
+        this.config = new Config();
         this.cache = new Cache(options.cache);
         this.apiClient = new APIClient(options.api);
 
@@ -82,6 +84,7 @@ class ZipcodeLookup {
 
     async getAvailableDataSources() {
         const connections = await this.testConnections();
+        const configData = this.config.load();
         const sources = [];
 
         if (connections.zipcodesPackage) {
@@ -98,7 +101,7 @@ class ZipcodeLookup {
                 name: 'nominatim',
                 type: 'external',
                 status: 'available',
-                features: ['zipcode_lookup', 'location_search']
+                features: ['zipcode_lookup', 'location_search', 'reverse_geocoding']
             });
 
             sources.push({
@@ -106,6 +109,15 @@ class ZipcodeLookup {
                 type: 'external',
                 status: 'available',
                 features: ['zipcode_lookup']
+            });
+        }
+
+        if (configData.googleMaps && configData.googleMaps.enabled) {
+            sources.push({
+                name: 'googlemaps',
+                type: 'external',
+                status: 'available',
+                features: ['zipcode_lookup', 'location_search', 'reverse_geocoding', 'high_accuracy']
             });
         }
 
@@ -122,10 +134,23 @@ class ZipcodeLookup {
     }
 
     getStats() {
+        const configData = this.config.load();
+        const availableSources = ['zipcodes', 'auto'];
+
+        if (configData.nominatim.enabled) {
+            availableSources.push('nominatim');
+        }
+        if (configData.zippopotam.enabled) {
+            availableSources.push('zippopotam');
+        }
+        if (configData.googleMaps.enabled) {
+            availableSources.push('googlemaps');
+        }
+
         return {
             cache: this.cache.getStats(),
             availableCommands: Object.keys(this.commands),
-            dataSources: ['zipcodes', 'nominatim', 'zippopotam', 'auto'],
+            dataSources: availableSources,
             version: require('../package.json').version
         };
     }
