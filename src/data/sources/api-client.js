@@ -3,13 +3,30 @@
  */
 
 const axios = require('axios');
+const Config = require('../../utils/config');
 
 class APIClient {
   constructor(options = {}) {
+    this.config = new Config();
+    const configData = this.config.load();
+
     this.baseTimeout = options.timeout || 30000;
-    this.retries = options.retries || 3;
+    this.retries = options.retries || configData.api.retries;
     this.cache = new Map();
-    this.cacheTTL = options.cacheTTL || 300000; // 5 minutes default
+    this.cacheTTL = options.cacheTTL || configData.cache.ttl;
+
+    // Google Maps configuration
+    this.googleMapsConfig = configData.googleMaps;
+
+    // Debug logging for Google Maps configuration
+    if (process.env.DEBUG) {
+      console.log('🔧 Google Maps Config:', {
+        enabled: this.googleMapsConfig.enabled,
+        hasApiKey: !!this.googleMapsConfig.apiKey,
+        apiKeyLength: this.googleMapsConfig.apiKey ? this.googleMapsConfig.apiKey.length : 0,
+        timeout: this.googleMapsConfig.timeout
+      });
+    }
   }
 
   /**
