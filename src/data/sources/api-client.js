@@ -49,6 +49,103 @@ class APIClient {
   }
 
   /**
+   * Get zipcode data from Google Maps Geocoding API specifically
+   * @param {string} zipcode - Zipcode to lookup
+   * @returns {Promise<Object|null>} Zipcode data
+   */
+  async getGoogleMapsZipcode(zipcode) {
+    if (!this.googleMapsConfig.enabled || !this.googleMapsConfig.apiKey) {
+      const message = !this.googleMapsConfig.enabled
+        ? 'Google Maps API is disabled in configuration'
+        : 'Google Maps API key is not configured';
+      throw new Error(`${message}. Please set GOOGLE_API_KEY environment variable or add to config.json.`);
+    }
+
+    if (process.env.DEBUG) {
+      console.log(`🗺️ Attempting Google Maps lookup for zipcode: ${zipcode}`);
+    }
+
+    try {
+      // Try different address formats for better results
+      const addressFormats = [
+        zipcode, // Simple zipcode
+        `${zipcode}, USA`, // Zipcode with country
+        `${zipcode}, United States` // Full country name
+      ];
+
+      for (let i = 0; i < addressFormats.length; i++) {
+        const address = addressFormats[i];
+
+        if (process.env.DEBUG) {
+          console.log(`🔍 Trying address format ${i + 1}/${addressFormats.length}: "${address}"`);
+        }
+
+        const response = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
+          params: {
+            address: address,
+            components: 'country:US',
+            key: this.googleMapsConfig.apiKey
+          },
+          timeout: this.googleMapsConfig.timeout
+        });
+
+        if (process.env.DEBUG) {
+          console.log(`📊 Google Maps API response status: ${response.data.status}`);
+          console.log(`📊 Google Maps API results count: ${response.data.results?.length || 0}`);
+        }
+
+        if (response.data.status === 'OVER_QUERY_LIMIT') {
+          throw new Error('Google Maps API quota exceeded');
+        }
+
+        if (response.data.status === 'REQUEST_DENIED') {
+          throw new Error('Google Maps API request denied - check API key and billing');
+        }
+
+        if (response.data.status === 'INVALID_REQUEST') {
+          console.warn(`Google Maps API invalid request for address: ${address}`);
+          continue; // Try next format
+        }
+
+        if (response.data.status === 'ZERO_RESULTS') {
+          if (process.env.DEBUG) {
+            console.log(`⚠️ No results for address format: ${address}`);
+          }
+          continue; // Try next format
+        }
+
+        if (response.data.status === 'OK' && response.data.results.length > 0) {
+          const result = this.transformGoogleMapsData(response.data.results[0], zipcode);
+          if (result) {
+            if (process.env.DEBUG) {
+              console.log(`✅ Successfully found Google Maps data for ${zipcode}:`, {
+                lat: result.latitude,
+                lng: result.longitude,
+                city: result.city,
+                state: result.state
+              });
+            }
+            return result;
+          }
+        }
+      }
+
+      // If no results from any format, return null
+      console.warn(`Google Maps API could not find any results for zipcode ${zipcode}`);
+      return null;
+    } catch (error) {
+      if (error.message.includes('quota') || error.message.includes('denied')) {
+        throw error; // Re-throw API-specific errors
+      }
+      console.error(`Google Maps API error for zipcode ${zipcode}:`, error.message);
+      if (process.env.DEBUG) {
+        console.error('Full error details:', error);
+      }
+      return null;
+    }
+  }
+
+  /**
    * Get zipcode data from external API with multiple fallbacks
    * @param {string} zipcode - Zipcode to lookup
    * @returns {Promise<Object|null>} Zipcode data
@@ -67,7 +164,21 @@ class APIClient {
         return result;
       }
     } catch (error) {
-      console.warn(`Nominatim API failed for ${zipcode}, trying Zippopotam.us...`);
+      console.warn(`Nominatim API failed for ${zipcode}, trying Google Maps...`);
+    }
+
+    // Try Google Maps as second fallback (high quality data)
+    if (this.googleMapsConfig.enabled) {
+      try {
+        const data = await this.getGoogleMapsZipcode(zipcode);
+        if (data) {
+          const result = { ...data, source: 'googlemaps' };
+          this.setCache(cacheKey, result);
+          return result;
+        }
+      } catch (error) {
+        console.warn(`Google Maps API failed for ${zipcode}, trying Zippopotam.us...`);
+      }
     }
 
     // Fallback to Zippopotam.us
@@ -130,6 +241,7 @@ class APIClient {
     const cached = this.getFromCache(cacheKey);
     if (cached) return cached;
 
+    // Try Nominatim first
     try {
       const response = await axios.get('https://nominatim.openstreetmap.org/reverse', {
         params: {
@@ -147,13 +259,67 @@ class APIClient {
 
       if (response.data && response.data.address && response.data.address.postcode) {
         const result = this.transformNominatimData(response.data, response.data.address.postcode);
+        result.source = 'nominatim';
         this.setCache(cacheKey, result);
         return result;
+      }
+    } catch (error) {
+      console.warn(`Nominatim reverse geocoding failed for ${lat},${lon}, trying Google Maps...`);
+    }
+
+    // Try Google Maps as fallback
+    if (this.googleMapsConfig.enabled) {
+      try {
+        const result = await this.reverseGeocodeGoogleMaps(lat, lon);
+        if (result) {
+          result.source = 'googlemaps';
+          this.setCache(cacheKey, result);
+          return result;
+        }
+      } catch (error) {
+        console.warn(`Google Maps reverse geocoding failed for ${lat},${lon}:`, error.message);
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Reverse geocode coordinates using Google Maps API
+   * @param {number} lat - Latitude coordinate
+   * @param {number} lon - Longitude coordinate
+   * @returns {Promise<Object|null>} Zipcode data
+   */
+  async reverseGeocodeGoogleMaps(lat, lon) {
+    if (!this.googleMapsConfig.enabled || !this.googleMapsConfig.apiKey) {
+      return null;
+    }
+
+    try {
+      const response = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
+        params: {
+          latlng: `${lat},${lon}`,
+          key: this.googleMapsConfig.apiKey,
+          result_type: 'postal_code'
+        },
+        timeout: this.googleMapsConfig.timeout
+      });
+
+      if (response.data.status === 'OK' && response.data.results.length > 0) {
+        // Find the best result with postal code
+        const bestResult = response.data.results.find(result =>
+          result.types.includes('postal_code')
+        ) || response.data.results[0];
+
+        const zipcode = this.extractZipcodeFromGoogleMapsResult(bestResult);
+        if (zipcode) {
+          return this.transformGoogleMapsData(bestResult, zipcode);
+        }
       }
 
       return null;
     } catch (error) {
-      console.error(`Nominatim reverse geocoding error for ${lat},${lon}:`, error.message);
+      console.error(`Google Maps reverse geocoding error for ${lat},${lon}:`, error.message);
       return null;
     }
   }
@@ -206,6 +372,161 @@ class APIClient {
       console.error(`Nominatim location search error:`, error.message);
       return [];
     }
+  }
+
+  /**
+   * Search city using Google Maps API
+   * @param {string} city - City name
+   * @param {string} state - State abbreviation
+   * @returns {Promise<Array>} Location results
+   */
+  async searchGoogleMapsCity(city, state) {
+    if (!this.googleMapsConfig.enabled || !this.googleMapsConfig.apiKey) {
+      return [];
+    }
+
+    const cacheKey = `googlemaps_city:${city},${state}`;
+    const cached = this.getFromCache(cacheKey);
+    if (cached) return cached;
+
+    if (process.env.DEBUG) {
+      console.log(`🔍 Google Maps city search for "${city}, ${state}"`);
+    }
+
+    try {
+      // Google Maps Geocoding API doesn't enumerate postal codes within a city well,
+      // so we'll use a hybrid approach: get potential zipcodes from the offline package
+      // and then enrich each one with Google Maps data
+      const zipcodes = require('zipcodes');
+      const offlineResults = zipcodes.lookupByName(city, state);
+
+      if (process.env.DEBUG) {
+        console.log(`🔍 Found ${offlineResults?.length || 0} potential zipcodes from offline data`);
+      }
+
+      const results = [];
+
+      if (offlineResults && offlineResults.length > 0) {
+        // For each zipcode found in the offline data, get the Google Maps data
+        for (const zipResult of offlineResults) {
+          try {
+            if (process.env.DEBUG) {
+              console.log(`🔍 Getting Google Maps data for zipcode ${zipResult.zip}`);
+            }
+
+            const googleMapsData = await this.getGoogleMapsZipcode(zipResult.zip);
+            if (googleMapsData) {
+              results.push(googleMapsData);
+            }
+          } catch (error) {
+            if (process.env.DEBUG) {
+              console.log(`⚠️ Failed to get Google Maps data for ${zipResult.zip}: ${error.message}`);
+            }
+            // Continue with other zipcodes
+          }
+        }
+      } else {
+        // Fallback: try to search directly for the city and extract any postal codes
+        const searchQuery = `${city}, ${state}, USA`;
+        const response = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
+          params: {
+            address: searchQuery,
+            components: 'country:US',
+            key: this.googleMapsConfig.apiKey
+          },
+          timeout: this.googleMapsConfig.timeout
+        });
+
+        if (response.data.status === 'OK' && response.data.results.length > 0) {
+          for (const result of response.data.results) {
+            const zipcode = this.extractZipcodeFromGoogleMapsResult(result);
+            if (zipcode) {
+              const transformed = this.transformGoogleMapsData(result, zipcode);
+              if (transformed) {
+                results.push(transformed);
+              }
+            }
+          }
+        }
+      }
+
+      if (process.env.DEBUG) {
+        console.log(`🔍 Google Maps city search found ${results.length} postal codes for ${city}, ${state}`);
+      }
+
+      this.setCache(cacheKey, results);
+      return results;
+    } catch (error) {
+      console.error(`Google Maps city search error for ${city}, ${state}:`, error.message);
+      return [];
+    }
+  }
+
+  /**
+   * Search county using Google Maps API
+   * @param {string} county - County name
+   * @param {string} state - State abbreviation
+   * @returns {Promise<Array>} Location results
+   */
+  async searchGoogleMapsCounty(county, state) {
+    if (!this.googleMapsConfig.enabled || !this.googleMapsConfig.apiKey) {
+      return [];
+    }
+
+    const cacheKey = `googlemaps_county:${county},${state}`;
+    const cached = this.getFromCache(cacheKey);
+    if (cached) return cached;
+
+    try {
+      const searchQuery = `${county} County, ${state}, USA`;
+      const response = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
+        params: {
+          address: searchQuery,
+          components: 'country:US',
+          key: this.googleMapsConfig.apiKey
+        },
+        timeout: this.googleMapsConfig.timeout
+      });
+
+      const results = [];
+      if (response.data.status === 'OK' && response.data.results.length > 0) {
+        for (const result of response.data.results) {
+          const zipcode = this.extractZipcodeFromGoogleMapsResult(result);
+          if (zipcode) {
+            const transformed = this.transformGoogleMapsData(result, zipcode);
+            if (transformed) {
+              results.push(transformed);
+            }
+          }
+        }
+      }
+
+      this.setCache(cacheKey, results);
+      return results;
+    } catch (error) {
+      console.error(`Google Maps county search error for ${county}, ${state}:`, error.message);
+      return [];
+    }
+  }
+
+  /**
+   * Search city using Nominatim API
+   * @param {string} city - City name
+   * @param {string} state - State abbreviation
+   * @returns {Promise<Array>} Location results
+   */
+  async searchNominatimCity(city, state) {
+    return await this.searchLocations({ city, state });
+  }
+
+  /**
+   * Search county using Nominatim API
+   * @param {string} county - County name
+   * @param {string} state - State abbreviation
+   * @returns {Promise<Array>} Location results
+   */
+  async searchNominatimCounty(county, state) {
+    return await this.searchLocations({ county, state });
   }
 
   /**
@@ -328,6 +649,98 @@ class APIClient {
       median_income: null,
       median_age: null
     };
+  }
+
+  /**
+   * Transform Google Maps API data to our format
+   * @param {Object} data - Raw Google Maps API data
+   * @param {string} zipcode - Zipcode for this result
+   * @returns {Object} Transformed data
+   */
+  transformGoogleMapsData(data, zipcode) {
+    if (!data || !data.geometry || !data.geometry.location) {
+      console.warn('Google Maps data missing geometry information:', data);
+      return null;
+    }
+
+    const components = this.parseGoogleMapsComponents(data.address_components || []);
+
+    // Validate that we have at least coordinates
+    const lat = parseFloat(data.geometry.location.lat);
+    const lng = parseFloat(data.geometry.location.lng);
+
+    if (isNaN(lat) || isNaN(lng)) {
+      console.warn('Google Maps data has invalid coordinates:', data.geometry.location);
+      return null;
+    }
+
+    return {
+      zipcode: zipcode || components.postal_code || '',
+      latitude: lat,
+      longitude: lng,
+      city: components.locality || components.sublocality || '',
+      state: components.administrative_area_level_1_short || '',
+      county: components.administrative_area_level_2 || '',
+      timezone: null,
+      area_code: null,
+      population: null,
+      land_area: null,
+      water_area: null,
+      housing_units: null,
+      median_income: null,
+      median_age: null
+    };
+  }  /**
+   * Parse Google Maps address components into a usable object
+   * @param {Array} components - Google Maps address components array
+   * @returns {Object} Parsed components object
+   */
+  parseGoogleMapsComponents(components) {
+    const parsed = {};
+
+    for (const component of components) {
+      const types = component.types;
+      const longName = component.long_name;
+      const shortName = component.short_name;
+
+      if (types.includes('postal_code')) {
+        parsed.postal_code = longName;
+      }
+      if (types.includes('locality')) {
+        parsed.locality = longName;
+      }
+      if (types.includes('sublocality')) {
+        parsed.sublocality = longName;
+      }
+      if (types.includes('administrative_area_level_1')) {
+        parsed.administrative_area_level_1 = longName;
+        parsed.administrative_area_level_1_short = shortName;
+      }
+      if (types.includes('administrative_area_level_2')) {
+        parsed.administrative_area_level_2 = longName;
+      }
+      if (types.includes('country')) {
+        parsed.country = longName;
+        parsed.country_short = shortName;
+      }
+    }
+
+    return parsed;
+  }
+
+  /**
+   * Extract zipcode from Google Maps geocoding result
+   * @param {Object} result - Google Maps result object
+   * @returns {string|null} Extracted zipcode or null
+   */
+  extractZipcodeFromGoogleMapsResult(result) {
+    if (!result.address_components) return null;
+
+    const postalComponent = result.address_components.find(component =>
+      component.types.includes('postal_code')
+    );
+
+    return postalComponent ? postalComponent.long_name : null;
   }
 
   /**
