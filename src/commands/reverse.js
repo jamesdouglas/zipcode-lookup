@@ -231,6 +231,11 @@ class ReverseCommand {
             return result ? [result] : [];
         }
 
+        if (source === 'googlemaps') {
+            const result = await this.findNearestViaGoogleMaps(lat, lon);
+            return result ? [result] : [];
+        }
+
         if (source === 'zippopotam') {
             const result = await this.findNearestViaZippopotam(lat, lon);
             return result ? [result] : [];
@@ -379,6 +384,16 @@ class ReverseCommand {
             return result;
         } catch (error) {
             console.warn(`Nominatim reverse lookup failed: ${error.message}`);
+            return null;
+        }
+    }
+
+    async findNearestViaGoogleMaps(lat, lon) {
+        try {
+            const result = await this.apiClient.reverseGeocodeGoogleMaps(lat, lon);
+            return result;
+        } catch (error) {
+            console.warn(`Google Maps reverse lookup failed: ${error.message}`);
             return null;
         }
     }
