@@ -142,10 +142,10 @@ function filterFields(data, includeOptions = {}) {
 
   // If explicit fields list is provided, use only those fields
   if (includeOptions.fields) {
-    const fieldsArray = typeof includeOptions.fields === 'string' 
+    const fieldsArray = typeof includeOptions.fields === 'string'
       ? includeOptions.fields.split(',').map(f => f.trim())
       : includeOptions.fields;
-    
+
     return data.map(item => {
       const filtered = {};
       fieldsArray.forEach(field => {
