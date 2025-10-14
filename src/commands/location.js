@@ -59,6 +59,10 @@ class LocationSearchCommand {
             return await this.searchCityViaNominatim(city, state);
         }
 
+        if (source === 'googlemaps') {
+            return await this.searchCityViaGoogleMaps(city, state);
+        }
+
         if (source === 'zippopotam') {
             return await this.searchCityViaZippopotam(city, state);
         }
@@ -95,6 +99,10 @@ class LocationSearchCommand {
         // Handle specific source requests
         if (source === 'nominatim') {
             return await this.searchCountyViaNominatim(county, state);
+        }
+
+        if (source === 'googlemaps') {
+            return await this.searchCountyViaGoogleMaps(county, state);
         }
 
         if (source === 'zippopotam') {
@@ -178,6 +186,26 @@ class LocationSearchCommand {
             return this.normalizeResults(results);
         } catch (error) {
             console.warn(`Nominatim county search failed: ${error.message}`);
+            return [];
+        }
+    }
+
+    async searchCityViaGoogleMaps(city, state) {
+        try {
+            const results = await this.apiClient.searchGoogleMapsCity(city, state);
+            return this.normalizeResults(results);
+        } catch (error) {
+            console.warn(`Google Maps city search failed: ${error.message}`);
+            return [];
+        }
+    }
+
+    async searchCountyViaGoogleMaps(county, state) {
+        try {
+            const results = await this.apiClient.searchGoogleMapsCounty(county, state);
+            return this.normalizeResults(results);
+        } catch (error) {
+            console.warn(`Google Maps county search failed: ${error.message}`);
             return [];
         }
     }
