@@ -44,6 +44,35 @@ npm link
 npm install axios chalk cli-table3 commander fs-extra js-yaml ora papaparse yargs zipcodes
 ```
 
+## Google Geocoding API Setup (Optional)
+
+To use Google's Geocoding API as a data source for enhanced accuracy and coverage:
+
+1. **Get a Google Geocoding API Key**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Enable the Geocoding API
+   - Create an API key
+
+2. **Configure Your API Key**
+   ```bash
+   # Option 1: Environment variable (recommended)
+   export GOOGLE_API_KEY="your-api-key-here"
+
+   # Option 2: Configuration file
+   echo '{"googleMaps":{"apiKey":"your-api-key-here"}}' > config.json
+   ```
+
+3. **Use Google Geocoding API Data Source**
+   ```bash
+   # Basic usage
+   zipcode-lookup radius -z 90210 -m 5 --source googlemaps
+
+   # Compare with other sources
+   zipcode-lookup radius -z 90210 -m 5 --source zipcodes --compare googlemaps
+   ```
+
+For detailed setup instructions, see [GOOGLE_MAPS_SETUP.md](GOOGLE_MAPS_SETUP.md).
+
 ## Diagrams
 
 For a visual overview of the architecture, command structure, data flow and data source fallbacks, refer to [DIAGRAMS.md](DIAGRAMS.md).
@@ -66,12 +95,15 @@ zipcode-lookup radius --zip 92054 --miles 25 --include-distance
 # Use specific data sources
 zipcode-lookup radius --zip 90210 --miles 25 --source zipcodes
 zipcode-lookup radius --zip 90210 --miles 25 --source nominatim
+zipcode-lookup radius --zip 90210 --miles 25 --source googlemaps
 zipcode-lookup radius --zip 90210 --miles 25 --source zippopotam
 
 # Compare data sources - analyze coordinate and distance differences
 zipcode-lookup radius --zip 92054 --miles 5 --include-distance --source zipcodes --compare nominatim
+zipcode-lookup radius --zip 92054 --miles 5 --include-distance --source zipcodes --compare googlemaps
 # Data source comparison with multiple providers
 zipcode-lookup radius --zip 90210 --miles 3 --include-distance --source nominatim --compare zippopotam
+zipcode-lookup radius --zip 90210 --miles 3 --include-distance --source googlemaps --compare nominatim
 
 # Generate KML files for Google Earth visualization
 zipcode-lookup radius --zip 92054 --miles 5 --include-distance --source zipcodes --compare nominatim --kml
@@ -131,9 +163,11 @@ zipcode-lookup reverse --lat 33.2072 --lon -117.3573 --include-coordinates
 
 # Use specific data source
 zipcode-lookup reverse --lat 33.2072 --lon -117.3573 --source nominatim
+zipcode-lookup reverse --lat 33.2072 --lon -117.3573 --source googlemaps
 
 # Compare data sources for reverse lookup
 zipcode-lookup reverse --lat 33.2072 --lon -117.3573 --source zipcodes --compare nominatim --include-distance
+zipcode-lookup reverse --lat 33.2072 --lon -117.3573 --source zipcodes --compare googlemaps --include-distance
 
 # Custom output format
 zipcode-lookup reverse --lat 33.2072 --lon -117.3573 --format json
@@ -206,7 +240,7 @@ Chicago,IL
 | ---------- | ----- | ---------------------------------------------------------- | ---------- |
 | `--format` | `-f`  | Output format (json, csv, yaml, table)                     | `table`    |
 | `--fields` |       | Comma-separated fields to include                          | All fields |
-| `--source` | `-s`  | Data source (nominatim, zippopotam, zipcodes, local, auto) | `auto`     |
+| `--source` | `-s`  | Data source (nominatim, zippopotam, zipcodes, googlemaps, local, auto) | `auto`     |
 | `--help`   | `-h`  | Show help information                                      | -          |
 
 ### Command-Specific Options
@@ -264,7 +298,7 @@ Chicago,IL
 | `-i`, `--input`      | Input CSV file path                                       | ✅                       |
 | `-o`, `--output`     | Output CSV file path                                      | ✅                       |
 | `--operation`        | Operation: radius, location, census, distance             | ✅                       |
-| `--source`           | Data source: nominatim, zippopotam, zipcodes, local, auto | ❌                       |
+| `--source`           | Data source: nominatim, zippopotam, zipcodes, googlemaps, local, auto | ❌                       |
 | `--chunk-size`       | Processing chunk size                                     | ❌                       |
 | `--progress`         | Show progress bar                                         | ❌                       |
 | `--radius`           | Radius for batch radius operations                        | if operation = radius   |
@@ -393,11 +427,11 @@ program
 
 ### Response Times (Average)
 
-| Command                  | Zipcodes Package | Nominatim API | Zippopotam API |
-| ------------------------ | ---------------- | ------------- | -------------- |
-| Single Zipcode           | 15ms             | 180ms         | 250ms          |
-| Radius Search (25 miles) | 45ms             | 1.8s          | 2.5s           |
-| Batch (100 items)        | 800ms            | 35s           | 45s            |
+| Command                  | Zipcodes Package | Nominatim API | Google Geocoding API | Zippopotam API |
+| ------------------------ | ---------------- | ------------- | --------------- | -------------- |
+| Single Zipcode           | 15ms             | 180ms         | 120ms           | 250ms          |
+| Radius Search (25 miles) | 45ms             | 1.8s          | 1.2s            | 2.5s           |
+| Batch (100 items)        | 800ms            | 35s           | 25s             | 45s            |
 
 ### Coverage Statistics
 
@@ -424,7 +458,7 @@ API error: Request failed with status code 429
 Error: Could not find coordinates for zipcode 00000
 ```
 
-**Solution**: Verify the zipcode exists. Try using different data sources with `--source nominatim` or `--source zippopotam` for broader coverage.
+**Solution**: Verify the zipcode exists. Try using different data sources with `--source nominatim`, `--source googlemaps`, or `--source zippopotam` for broader coverage.
 
 ### Debug Mode
 
@@ -460,6 +494,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## 🙏 Acknowledgments
 
 - **zipcodes npm package** - Comprehensive US zipcode data
+- **Google Maps Geocoding API** - High-accuracy geocoding and reverse geocoding
 - **Nominatim/OpenStreetMap** - Additional geocoding API
 - **US Census Bureau** - Census tract data
 - **OpenStreetMap** - Geographic data sources
