@@ -79,7 +79,7 @@ To use Google's Geocoding API as a data source:
    echo '{"googleMaps":{"apiKey":"your-api-key-here"}}' > config.json
    ```
 
-3. **Use Google Geocoding API Data Source**
+2. **Use Google Geocoding API Data Source**
    ```bash
    # Basic usage
    zipcode-lookup radius -z 90210 -m 5 --source googlemaps
@@ -88,7 +88,7 @@ To use Google's Geocoding API as a data source:
    zipcode-lookup radius -z 90210 -m 5 --source zipcodes --compare googlemaps
    ```
 
-For detailed setup instructions, see [GOOGLE_MAPS_SETUP.md](GOOGLE_MAPS_SETUP.md).
+For detailed setup instructions, see [GOOGLE_API_SETUP.md](GOOGLE_API_SETUP.md).
 
 ## Diagrams
 
