@@ -1,6 +1,12 @@
 # 🗺️ Zipcode Lookup CLI Tool
 
-A comprehensive command-line interface for zipcode lookup, radius search, location-based queries, and census tract integration. Features intelligent data source fallbacks, multiple output formats, and accurate geographic calculations.
+A comprehensive command-line interface for zipcode lookFor detailed setup instructions, see [GOOGLE_API_SETUP.md](GOOGLE_API_SETUP.md).
+
+For comprehensive information about data accuracy and why different sources provide varying results, see [DATA_ACCURACY.md](DATA_ACCURACY.md).
+
+## Diagrams radius search, location-based queries, and census tract integration. Features intelligent data source fallbacks, multiple output formats, and accurate geographic calculations.
+
+**Key Focus**: One of the main functions of this tool is to help compare discrepancies between zipcode data sources and their centroid coordinates. Variance in centroid coordinates can have a massive impact on radius search results. The comparison mode identifies coordinate discrepancies between zipcode sources, and the KML output helps visualize these differences.
 
 ## ✨ Features
 
@@ -44,16 +50,27 @@ npm link
 npm install axios chalk cli-table3 commander fs-extra js-yaml ora papaparse yargs zipcodes
 ```
 
+## **⚠️ Data Source Accuracy Notice**
+
+Different data sources may provide varying levels of geographic precision. Coordinate differences between sources are normal due to different methodologies in determining zipcode centroids:
+
+- **Postal Boundaries**: The `zipcodes` package uses USPS postal delivery boundaries
+- **Municipal Boundaries**: Google Maps may use city/administrative boundaries
+- **Geographic Centers**: APIs may calculate different geographic center points
+- **City Labeling**: APIs may use different city names than official USPS mailing addresses
+
+For example, zipcode 92054 shows coordinate differences of ~1 mile between sources, and Google incorrectly labels it as "Camp Pendleton North" when the official USPS mailing city is "Oceanside". Such discrepancies affect both radius search results and city identification. Use the `--compare` flag to analyze differences between data sources for your specific use case.
+
 ## Google Geocoding API Setup (Optional)
 
-To use Google's Geocoding API as a data source for enhanced accuracy and coverage:
+To use Google's Geocoding API as a data source:
 
 1. **Get a Google Geocoding API Key**
    - Go to [Google Cloud Console](https://console.cloud.google.com/)
    - Enable the Geocoding API
    - Create an API key
 
-2. **Configure Your API Key**
+1. **Configure Your API Key**
    ```bash
    # Option 1: Environment variable (recommended)
    export GOOGLE_API_KEY="your-api-key-here"
